@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
  * The Vault uses three ERC20's:
@@ -28,10 +29,9 @@ contract SimpleRewardVault is ERC4626 {
 
     event HarvestRewards(address indexed user, uint256 amount);
 
-    constructor(IERC20 rewards_, IERC20 stakingAsset_, string memory shareName_, string memory shareSymbol_) ERC4626(stakingAsset_) ERC20(shareName_, shareSymbol_){
+    constructor(IERC20 rewards_, IERC20 stakingAsset_, string memory shareName_, string memory shareSymbol_) ERC4626(stakingAsset_) ERC20(shareName_, shareSymbol_)  {
         _rewards = rewards_;
     }
-
 
     function deposit(uint256 assets_, address receiver_) public virtual override returns (uint256) {
         harvestRewards(receiver_);
@@ -55,12 +55,15 @@ contract SimpleRewardVault is ERC4626 {
 
     function harvestRewards(address receiver_) public {
         updatePoolRewards();
-        uint maximumRewards = ERC20.balanceOf(receiver_) * _accumulatedRewardsPerShare / REWARDS_PRECISION;
-        uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];
-        if (rewardsToHarvest > 0) {
-            _rewardDebt[receiver_] = maximumRewards;
-            emit HarvestRewards(receiver_, rewardsToHarvest);
-            SafeERC20.safeTransferFrom(_rewards, address(this), receiver_, rewardsToHarvest);
+
+        if (ERC4626.totalAssets() >= 0) {
+            uint maximumRewards = ERC20.balanceOf(receiver_) * _accumulatedRewardsPerShare / REWARDS_PRECISION;
+            uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];
+            if (rewardsToHarvest > 0) {
+                _rewardDebt[receiver_] = maximumRewards;
+                emit HarvestRewards(receiver_, rewardsToHarvest);
+                SafeERC20.safeTransferFrom(_rewards, address(this), receiver_, rewardsToHarvest);
+            }
         }
     }
 
