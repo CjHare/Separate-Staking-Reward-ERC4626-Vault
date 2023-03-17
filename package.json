@@ -1,0 +1,40 @@
+{
+  "name": "simple-rewarding-vault",
+  "version": "1.0.0",
+  "description": "A simple reward giving vault implementation",
+  "license": "Apache-2.0",
+  "private": false,
+  "directories": {
+    "test": "test"
+  },
+  "publishConfig": {
+    "tag": "latest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CjHare/Simple-Rewarding-Vault"
+  },
+  "scripts": {
+    "build": "hardhat compile",
+    "clean": "hardhat clean",
+    "test": "mocha --timeout 10000 --exit --recursive --require ts-node/register \"test/**/*.test.ts\""
+  },
+  "devDependencies": {
+    "@nomiclabs/hardhat-ethers": "^2.2.2",
+    "@nomiclabs/hardhat-waffle": "^2.0.5",
+    "@openzeppelin/contracts": "^4.8.2",
+    "@typechain/ethers-v5": "^10.2.0",
+    "@typechain/hardhat": "^6.1.5",
+    "@types/chai": "^4.3.4",
+    "@types/mocha": "^10.0.1",
+    "@types/node": "^18.15.3",
+    "chai": "^4.3.7",
+    "ethereum-waffle": "^4.0.10",
+    "ethers": "^5.7.2",
+    "hardhat": "^2.13.0",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.1",
+    "typechain": "^8.1.1",
+    "typescript": "^5.0.2"
+  }
+}
