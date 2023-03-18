@@ -65,7 +65,10 @@ describe('Staking Pool Tests', () => {
             await assets.connect(userTwo).approve(vault.address, TWO_HUNDRED_TOKENS)
             await vault.connect(userTwo).deposit(TWO_HUNDRED_TOKENS, userTwo.address)
 
-            // Pass 100 blocks
+            // Mine the two deposits
+            await mine()
+
+            // Pass 100 blocks - 100 blocks or reward time
             await mine(100)
 
             // User 1 withdraws 100 tokens (burning the vault tokens) and receives 33.33 reward tokens
@@ -75,7 +78,7 @@ describe('Staking Pool Tests', () => {
             //TODO previewEarnedRewards
             console.log('User2 shares: ' + await vault.previewHarvestRewards(userTwo.address))
 
-            // Pass another 100 blocks
+            // Pass another 100 blocks - 100 blocks of reward time
             await mine(100)
 
             // User 2 keeps balance (has earned 166.66 vault tokens)
@@ -86,7 +89,7 @@ describe('Staking Pool Tests', () => {
             await assets.connect(userThree).approve(vault.address, ONE_HUNDRED_TOKENS)
             await vault.connect(userThree).deposit(ONE_HUNDRED_TOKENS, userThree.address)
 
-            // Pass another 100 blocks
+            // Pass another 100 blocks - 99 blocks of reward time for User Three, 100 blocks for User Two
             await mine(100)
 
             // User 2 keeps balance (has earned 233.33 vault tokens)
