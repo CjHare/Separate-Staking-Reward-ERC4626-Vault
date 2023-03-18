@@ -2,7 +2,6 @@
 
 import '@typechain/hardhat'
 import '@nomiclabs/hardhat-ethers'
-import '@nomiclabs/hardhat-waffle'
 
 /**
  * 0.8.18 was the latest version supported on config authoring
@@ -19,7 +18,7 @@ export default {
         auto: false,
         interval: 0
       }
-    },s
+    },
     local: {
       url: 'http://localhost:8545',
       chainId: 33133,
