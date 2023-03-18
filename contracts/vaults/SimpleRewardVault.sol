@@ -13,6 +13,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * Reward tokens must be transferred to the Vault, although the reward contract is defined on creation the rewards may
  * transferred in at any time, but that must be done before any rewards can be harvested.
  * (This model is opposed to setting an allowance for the Vault on the rewards contract).
+ *
+ * Reward calculation uses the share summation that is used in MasterChef V2, keeping accumulated rewards per a share
+ * and deducting the ineligible portion (either due to occurring before deposit or from harvesting).
  */
 contract SimpleRewardVault is ERC4626 {
     using SafeERC20 for IERC20;
