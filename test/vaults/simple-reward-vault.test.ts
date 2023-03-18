@@ -73,14 +73,14 @@ describe('Staking Pool Tests', () => {
 
             // User 2 keeps balance (has earned 66.66 reward tokens to date)
             //TODO previewEarnedRewards
-            console.log('User2 shares: ' + await vault.balanceOf(userTwo.address))
+            console.log('User2 shares: ' + await vault.previewHarvestRewards(userTwo.address))
 
             // Pass another 100 blocks
             await mine(100)
 
             // User 2 keeps balance (has earned 166.66 vault tokens)
             //TODO previewEarnedRewards
-            console.log('User2 shares: ' + await vault.balanceOf(userTwo.address))
+            console.log('User2 shares: ' + await vault.previewHarvestRewards(userTwo.address))
 
             // User 3 deposits 100 token A into Vault, receiving 100 Vault tokens
             await assets.connect(userThree).approve(vault.address, ONE_HUNDRED_TOKENS)
@@ -91,11 +91,11 @@ describe('Staking Pool Tests', () => {
 
             // User 2 keeps balance (has earned 233.33 vault tokens)
             //TODO previewEarnedRewards
-            console.log('User2 shares: ' + await vault.balanceOf(userTwo.address))
+            console.log('User2 shares: ' + await vault.previewHarvestRewards(userTwo.address))
 
             // User 3 keeps balance (has earned 33.33 tokens)
             //TODO previewEarnedRewards
-            console.log('User3 shares: ' + await vault.balanceOf(userThree.address))
+            console.log('User3 shares: ' + await vault.previewHarvestRewards(userThree.address))
 
             //TODO assets
         })

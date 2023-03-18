@@ -17,7 +17,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract SimpleRewardVault is ERC4626 {
     using SafeERC20 for IERC20;
 
-    uint256 private constant REWARDS_PRECISION = 1e8;
+    uint256 private constant REWARDS_PRECISION = 10e18;
 
     uint256 private _rewardTokensPerBlock;
     uint256 private _totalStaked;
@@ -53,13 +53,26 @@ contract SimpleRewardVault is ERC4626 {
         address receiver_,
         address owner_
     ) public virtual override returns (uint256) {
-
-        //TODO include assets -> shares, currently assuming equality
         harvestRewards(receiver_);
 
         return ERC4626.withdraw(assets_, receiver_, owner_);
     }
 
+
+    function previewHarvestRewards(address receiver_) external view returns (uint256){
+        uint totalShares = ERC20.totalSupply();
+
+        if (ERC4626.totalAssets() > 0 && totalShares > 0) {
+            uint blocksSinceLastReward = block.number - _lastRewardedBlock;
+            uint rewards = blocksSinceLastReward * _rewardTokensPerBlock;
+            uint previewAccumulatedRewardsPerShare = _accumulatedRewardsPerShare + (rewards / totalShares);
+            uint maximumRewards = (ERC20.balanceOf(receiver_) * previewAccumulatedRewardsPerShare) / REWARDS_PRECISION;
+            uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];
+            return rewardsToHarvest;
+        }
+
+        return 0;
+    }
 
     /**
      * When the vault lacks sufficient rewards harvest will revert on the attempted transfer of reward tokens.
@@ -93,18 +106,4 @@ contract SimpleRewardVault is ERC4626 {
 
         _lastRewardedBlock = block.number;
     }
-
-    /*
-    function mint(uint256 shares, address receiver) public virtual override returns (uint256) {
-        revert("mint is disabled");
-    }
-
-    function redeem(
-        uint256 shares,
-        address receiver,
-        address owner
-    ) public virtual override returns (uint256) {
-        revert("redeem is disabled");
-    }
-    */
 }
