@@ -4,9 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-//TODO debug
-import "hardhat/console.sol";
-
 /**
  * The Vault uses three ERC20's:
  * 1) The Vaults own ERC20 is the share in the reward.
@@ -61,20 +58,18 @@ contract SimpleRewardVault is ERC4626 {
         return ERC4626.withdraw(assets_, receiver_, owner_);
     }
 
-
+    /**
+     * Preview of the rewards earned if harvest in the next block e.g. current block + 1
+     */
     function previewHarvestRewards(address receiver_) external view returns (uint256){
         uint totalShares = ERC20.totalSupply();
 
         if (ERC4626.totalAssets() > 0 && totalShares > 0) {
-            uint blocksSinceLastReward = block.number - _lastRewardedBlock;
+            uint blocksSinceLastReward = block.number - _lastRewardedBlock + 1;
             uint rewards = blocksSinceLastReward * _rewardTokensPerBlock;
             uint previewAccumulatedRewardsPerShare = _accumulatedRewardsPerShare + (rewards / totalShares);
             uint maximumRewards = (ERC20.balanceOf(receiver_) * previewAccumulatedRewardsPerShare) / REWARDS_PRECISION;
             uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];
-
-            console.log("Preview harvest");
-            console.log(blocksSinceLastReward);
-            console.log(previewAccumulatedRewardsPerShare);
 
             return rewardsToHarvest;
         }

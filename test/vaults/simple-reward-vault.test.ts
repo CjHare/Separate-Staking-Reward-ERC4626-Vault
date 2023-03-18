@@ -5,14 +5,20 @@ import {
     IERC20,
     SimpleRewardVault
 } from '../../typechain-types'
+import chai, {expect} from 'chai'
 import {ethers, network} from "hardhat";
 import {BigNumber, utils} from "ethers";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
+import {solidity} from "ethereum-waffle";
 // End - Support direct Mocha run & debug
 
+chai.use(solidity);
+
+const ZERO = BigNumber.from(0)
+const SIXTEEN_DECIMAL_PLACES = BigNumber.from(10).pow(16)
 const EIGHTEEN_DECIMAL_PLACES = BigNumber.from(10).pow(18)
 const ONE_HUNDRED_TOKENS = BigNumber.from(100).mul(EIGHTEEN_DECIMAL_PLACES)
-const TWO_HUNDRED_TOKENS =BigNumber.from(200).mul(EIGHTEEN_DECIMAL_PLACES)
+const TWO_HUNDRED_TOKENS = BigNumber.from(200).mul(EIGHTEEN_DECIMAL_PLACES)
 const ONE_MILLION_TOKENS = BigNumber.from(10e5).mul(EIGHTEEN_DECIMAL_PLACES)
 
 // Manual mining is on; mine() must be called to produce blocks!
@@ -21,7 +27,7 @@ describe('Staking Pool Tests', () => {
         before(async () => {
             const erc20Factory = await ethers.getContractFactory('TestERC20')
             const promiseStakingContract = erc20Factory.deploy('StakingToken', 'STK', ONE_MILLION_TOKENS)
-            const promisedRewardContract = erc20Factory.deploy('RewardToken', 'RTK',ONE_MILLION_TOKENS)
+            const promisedRewardContract = erc20Factory.deploy('RewardToken', 'RTK', ONE_MILLION_TOKENS)
             await mine()
 
             assets = <IERC20>await promiseStakingContract
@@ -65,9 +71,6 @@ describe('Staking Pool Tests', () => {
             await assets.connect(userTwo).approve(vault.address, TWO_HUNDRED_TOKENS)
             await vault.connect(userTwo).deposit(TWO_HUNDRED_TOKENS, userTwo.address)
 
-            // Mine the two deposits
-            await mine()
-
             // Pass 100 blocks - 100 blocks or reward time
             await mine(100)
 
@@ -75,15 +78,13 @@ describe('Staking Pool Tests', () => {
             await vault.connect(userOne).withdraw(ONE_HUNDRED_TOKENS, userOne.address, userOne.address)
 
             // User 2 keeps balance (has earned 66.66 reward tokens to date)
-            //TODO previewEarnedRewards
-            console.log('User2 shares: ' + await vault.previewHarvestRewards(userTwo.address))
+            // expect(await vault.previewHarvestRewards(userTwo.address), 'User Two rewards').equals(rewardsFromFloatingPoint(66.66))
 
             // Pass another 100 blocks - 100 blocks of reward time
             await mine(100)
 
             // User 2 keeps balance (has earned 166.66 vault tokens)
-            //TODO previewEarnedRewards
-            console.log('User2 shares: ' + await vault.previewHarvestRewards(userTwo.address))
+            expect(await vault.previewHarvestRewards(userTwo.address), 'User Two previewed rewards').to.be.closeTo(rewardsTwoDp(166.66), SIXTEEN_DECIMAL_PLACES)
 
             // User 3 deposits 100 token A into Vault, receiving 100 Vault tokens
             await assets.connect(userThree).approve(vault.address, ONE_HUNDRED_TOKENS)
@@ -93,14 +94,27 @@ describe('Staking Pool Tests', () => {
             await mine(100)
 
             // User 2 keeps balance (has earned 233.33 vault tokens)
-            //TODO previewEarnedRewards
-            console.log('User2 shares: ' + await vault.previewHarvestRewards(userTwo.address))
+            expect(await vault.previewHarvestRewards(userTwo.address), 'User Two previewed rewards').to.be.closeTo(rewardsTwoDp(233.33), SIXTEEN_DECIMAL_PLACES)
 
             // User 3 keeps balance (has earned 33.33 tokens)
-            //TODO previewEarnedRewards
-            console.log('User3 shares: ' + await vault.previewHarvestRewards(userThree.address))
+            expect(await vault.previewHarvestRewards(userThree.address), 'User Three previewed rewards').to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
 
-            //TODO assets
+            // User One withdrew and harvested rewards
+            expect(await vault.balanceOf(userOne.address), 'User One vault').equals(ZERO)
+            expect(await assets.balanceOf(userOne.address), 'User One assets').equals(ONE_HUNDRED_TOKENS)
+            expect(await rewards.balanceOf(userOne.address), 'User One rewards').to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
+
+            // User Two is still staking
+            expect(await vault.balanceOf(userTwo.address), 'User Two vault').equals(TWO_HUNDRED_TOKENS)
+            expect(await assets.balanceOf(userTwo.address), 'User Two assets').equals(ZERO)
+            expect(await rewards.balanceOf(userTwo.address), 'User Two rewards').equals(ZERO)
+            expect(await vault.previewHarvestRewards(userTwo.address), 'User Two previewed rewards').to.be.closeTo(rewardsTwoDp(233.33), SIXTEEN_DECIMAL_PLACES)
+
+            // User Three is still staking
+            expect(await vault.balanceOf(userThree.address), 'User Three vault').equals(ONE_HUNDRED_TOKENS)
+            expect(await assets.balanceOf(userThree.address), 'User Three assets').equals(ZERO)
+            expect(await rewards.balanceOf(userThree.address), 'User Three rewards').equals(ZERO)
+            expect(await vault.previewHarvestRewards(userThree.address), 'User Three previewed rewards').to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
         })
 
         async function mine(blocks: number = 1) {
@@ -111,6 +125,10 @@ describe('Staking Pool Tests', () => {
                 // HH mine has a problem with extra zero's, they must be stripped out e.g. input of 5 breaks it "0x05"
                 await network.provider.send("hardhat_mine", [utils.hexStripZeros(utils.hexlify(blocks))])
             }
+        }
+
+        function rewardsTwoDp(twoDecimalPlaceAmount: number): BigNumber {
+            return BigNumber.from(Math.round(twoDecimalPlaceAmount * 100)).mul(SIXTEEN_DECIMAL_PLACES)
         }
 
         let vault: SimpleRewardVault
