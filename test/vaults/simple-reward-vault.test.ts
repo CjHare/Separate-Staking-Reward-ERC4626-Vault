@@ -2,25 +2,31 @@
 import 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import {
+    ERC20,
     IERC20,
     SimpleRewardVault
 } from '../../typechain-types'
 import {ethers, network} from "hardhat";
-import {utils} from "ethers";
+import {BigNumber, utils} from "ethers";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 // End - Support direct Mocha run & debug
+
+const EIGHTEEN_DECIMAL_PLACES = BigNumber.from(10).pow(18)
+const ONE_HUNDRED_TOKENS = BigNumber.from(100).mul(EIGHTEEN_DECIMAL_PLACES)
+const TWO_HUNDRED_TOKENS =BigNumber.from(200).mul(EIGHTEEN_DECIMAL_PLACES)
+const ONE_MILLION_TOKENS = BigNumber.from(10e5).mul(EIGHTEEN_DECIMAL_PLACES)
 
 // Manual mining is on; mine() must be called to produce blocks!
 describe('Staking Pool Tests', () => {
 
         before(async () => {
             const erc20Factory = await ethers.getContractFactory('TestERC20')
-            const promiseStakingContract = erc20Factory.deploy('StakingToken', 'STK')
-            const promisedRewardContract = erc20Factory.deploy('RewardToken', 'RTK')
+            const promiseStakingContract = erc20Factory.deploy('StakingToken', 'STK', ONE_MILLION_TOKENS)
+            const promisedRewardContract = erc20Factory.deploy('RewardToken', 'RTK',ONE_MILLION_TOKENS)
             await mine()
 
-            stakingToken = <IERC20>await promiseStakingContract
-            rewardToken = <IERC20>await promisedRewardContract
+            assets = <IERC20>await promiseStakingContract
+            rewards = <IERC20>await promisedRewardContract
 
             const signers = await ethers.getSigners()
             owner = signers[0]
@@ -29,17 +35,17 @@ describe('Staking Pool Tests', () => {
             userThree = signers[3]
 
             const factory = await ethers.getContractFactory('SimpleRewardVault')
-            const promisedVaultContract = factory.deploy(rewardToken.address, stakingToken.address, 'VaultToken', 'VTK')
+            const promisedVaultContract = factory.deploy(rewards.address, assets.address, 'VaultToken', 'VTK')
             await mine()
             vault = <SimpleRewardVault>await promisedVaultContract
 
             // Give the users with their staking funds
             await
-                stakingToken.transfer(userOne.address, 100)
+                assets.transfer(userOne.address, ONE_HUNDRED_TOKENS)
             await
-                stakingToken.transfer(userTwo.address, 200)
+                assets.transfer(userTwo.address, TWO_HUNDRED_TOKENS)
             await
-                stakingToken.transfer(userThree.address, 100)
+                assets.transfer(userThree.address, ONE_HUNDRED_TOKENS)
 
             await mine()
             await mine()
@@ -47,54 +53,52 @@ describe('Staking Pool Tests', () => {
 
         it('should calculate rewards for staggered stakes and withdrawal', async () => {
 
-            // Owner deposits 1,000,000 reward tokens
-//TODO add reward method
-//    vault.connect(owner)
+            // Owner deposits 1,000,000 reward tokens (in rewards decimal)
+            await rewards.transfer(vault.address, ONE_MILLION_TOKENS)
 
-            // 1 token per a block
+            // 1 token per a block - hardcoded in contract
 
             // User 1 deposits 100 token A into Vault, receiving 100 Vault tokens
-            await stakingToken.connect(userOne).approve(vault.address,100)
-           await vault.connect(userOne).deposit(100, userOne.address)
+            await assets.connect(userOne).approve(vault.address, ONE_HUNDRED_TOKENS)
+            await vault.connect(userOne).deposit(ONE_HUNDRED_TOKENS, userOne.address)
 
             // User 2 deposits 200 token A into Vault, receiving 200 Vault tokens
-            await stakingToken.connect(userTwo).approve(vault.address,200)
-        await vault.connect(userTwo).deposit(200, userTwo.address)
+            await assets.connect(userTwo).approve(vault.address, TWO_HUNDRED_TOKENS)
+            await vault.connect(userTwo).deposit(TWO_HUNDRED_TOKENS, userTwo.address)
 
             // Pass 100 blocks
             await mine(100)
 
-
-            console.log(await vault.asset())
-            console.log(await vault.totalAssets())
-            console.log(await vault.totalSupply())
-
-            console.log(await stakingToken.balanceOf(userOne.address))
-            console.log(await stakingToken.balanceOf(userTwo.address))
-
-
-            console.log(await vault.balanceOf(userOne.address))
-            console.log(await vault.balanceOf(userTwo.address))
-
-            console.log(await rewardToken.balanceOf(userOne.address))
-            console.log(await ethers.provider.getBlockNumber())
-
-
             // User 1 withdraws 100 tokens (burning the vault tokens) and receives 33.33 reward tokens
+            await vault.connect(userOne).withdraw(ONE_HUNDRED_TOKENS, userOne.address, userOne.address)
 
             // User 2 keeps balance (has earned 66.66 reward tokens to date)
+            //TODO previewEarnedRewards
+            console.log('User2 shares: ' + await vault.balanceOf(userTwo.address))
 
             // Pass another 100 blocks
+            await mine(100)
 
             // User 2 keeps balance (has earned 166.66 vault tokens)
+            //TODO previewEarnedRewards
+            console.log('User2 shares: ' + await vault.balanceOf(userTwo.address))
 
             // User 3 deposits 100 token A into Vault, receiving 100 Vault tokens
+            await assets.connect(userThree).approve(vault.address, ONE_HUNDRED_TOKENS)
+            await vault.connect(userThree).deposit(ONE_HUNDRED_TOKENS, userThree.address)
 
             // Pass another 100 blocks
+            await mine(100)
 
             // User 2 keeps balance (has earned 233.33 vault tokens)
+            //TODO previewEarnedRewards
+            console.log('User2 shares: ' + await vault.balanceOf(userTwo.address))
 
             // User 3 keeps balance (has earned 33.33 tokens)
+            //TODO previewEarnedRewards
+            console.log('User3 shares: ' + await vault.balanceOf(userThree.address))
+
+            //TODO assets 
         })
 
         async function mine(blocks: number = 1) {
@@ -108,8 +112,8 @@ describe('Staking Pool Tests', () => {
         }
 
         let vault: SimpleRewardVault
-        let stakingToken: IERC20
-        let rewardToken: IERC20
+        let assets: IERC20
+        let rewards: IERC20
         let owner: SignerWithAddress
         let userOne: SignerWithAddress
         let userTwo: SignerWithAddress
