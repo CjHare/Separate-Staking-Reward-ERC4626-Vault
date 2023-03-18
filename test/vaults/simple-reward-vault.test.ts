@@ -2,7 +2,6 @@
 import 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 import {
-    ERC20,
     IERC20,
     SimpleRewardVault
 } from '../../typechain-types'
@@ -98,7 +97,7 @@ describe('Staking Pool Tests', () => {
             //TODO previewEarnedRewards
             console.log('User3 shares: ' + await vault.balanceOf(userThree.address))
 
-            //TODO assets 
+            //TODO assets
         })
 
         async function mine(blocks: number = 1) {

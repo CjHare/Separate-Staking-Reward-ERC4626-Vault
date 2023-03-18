@@ -4,9 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-//TODO debug - remove
-import "hardhat/console.sol";
-
 /**
  * The Vault uses three ERC20's:
  * 1) The Vaults own ERC20 is the share in the reward.
@@ -72,23 +69,9 @@ contract SimpleRewardVault is ERC4626 {
 
         if (ERC4626.totalAssets() >= 0) {
             uint maximumRewards = (ERC20.balanceOf(receiver_) * _accumulatedRewardsPerShare) / REWARDS_PRECISION;
-
-
-
             uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];
+
             if (rewardsToHarvest > 0) {
-
-                console.log("HarvestRewards");
-                console.log(ERC20.balanceOf(receiver_) );
-                console.log(_accumulatedRewardsPerShare );
-                console.log( (ERC20.balanceOf(receiver_) * _accumulatedRewardsPerShare));
-                console.log(REWARDS_PRECISION);
-
-                console.log(maximumRewards);
-                console.log(rewardsToHarvest);
-
-                console.log(_rewards.balanceOf(address(this)));
-
                 _rewardDebt[receiver_] = maximumRewards;
                 emit HarvestRewards(receiver_, rewardsToHarvest);
                 SafeERC20.safeTransfer(_rewards, receiver_, rewardsToHarvest);
