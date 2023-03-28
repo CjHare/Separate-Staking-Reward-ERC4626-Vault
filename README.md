@@ -19,3 +19,14 @@ npm run build
 npm test
 ```
 
+#### Formatting
+To run both the TypeScript and Solidity source formatters.
+```shell
+npm run format
+```
+
+#### Linting
+To run both the TypeScript and Solidity linters.
+```shell
+npm run lint
+```
