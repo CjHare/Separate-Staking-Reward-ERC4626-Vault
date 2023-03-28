@@ -5,6 +5,7 @@ name: Run tests
 
 on:
   push:
+      - main
   pull_request:
     branches:
       - main
