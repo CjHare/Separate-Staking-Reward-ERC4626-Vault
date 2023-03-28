@@ -5,10 +5,11 @@ import '@nomiclabs/hardhat-ethers'
 
 import {IERC20, SimpleRewardVault} from '../../typechain-types'
 import chai, {expect} from 'chai'
-import {BigNumber, utils} from 'ethers'
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers'
 import {solidity} from 'ethereum-waffle'
-import {ethers, network} from "hardhat";
+import {BigNumber} from 'ethers'
+import {mine} from '../utils/mining'
+import {deploy, signer} from '../utils/contract'
 
 // Wires up Waffle with Chai
 chai.use(solidity)
@@ -23,29 +24,30 @@ const ONE_MILLION_TOKENS = BigNumber.from(10e5).mul(EIGHTEEN_DECIMAL_PLACES)
 // Manual mining is on; mine() must be called to produce blocks!
 describe('Staking Pool Tests', () => {
     before(async () => {
-        const erc20Factory = await ethers.getContractFactory('TestERC20')
-        const promiseStakingContract = erc20Factory.deploy(
+        const promiseStakingContract = deploy(
+            'TestERC20',
             'StakingToken',
             'STK',
             ONE_MILLION_TOKENS
         )
-        const promisedRewardContract = erc20Factory.deploy(
+        const promisedRewardContract = deploy(
+            'TestERC20',
             'RewardToken',
             'RTK',
             ONE_MILLION_TOKENS
         )
+
         await mine()
 
         assets = <IERC20>await promiseStakingContract
         rewards = <IERC20>await promisedRewardContract
 
-        const signers = await ethers.getSigners()
-        userOne = signers[1]
-        userTwo = signers[2]
-        userThree = signers[3]
+        userOne = await signer(1)
+        userTwo = await signer(2)
+        userThree = await signer(3)
 
-        const factory = await ethers.getContractFactory('SimpleRewardVault')
-        const promisedVaultContract = factory.deploy(
+        const promisedVaultContract = deploy(
+            'SimpleRewardVault',
             rewards.address,
             assets.address,
             'VaultToken',
@@ -169,17 +171,6 @@ describe('Staking Pool Tests', () => {
             'User Three previewed rewards'
         ).to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
     })
-
-    async function mine(blocks: number = 1) {
-        if (blocks === 1) {
-            await network.provider.send('evm_mine')
-        } else {
-            // HH mine has a problem with extra zero's, they must be stripped out e.g. input of 5 breaks it "0x05"
-            await network.provider.send('hardhat_mine', [
-                utils.hexStripZeros(utils.hexlify(blocks))
-            ])
-        }
-    }
 
     function rewardsTwoDp(twoDecimalPlaceAmount: number): BigNumber {
         return BigNumber.from(Math.round(twoDecimalPlaceAmount * 100)).mul(

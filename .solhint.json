@@ -30,6 +30,7 @@
     "not-rely-on-time": "off",
     "compiler-version": "off",
     "no-empty-blocks": "off",
+    "no-global-import" : "off",
     "func-name-mixedcase": "off"
   }
 }
