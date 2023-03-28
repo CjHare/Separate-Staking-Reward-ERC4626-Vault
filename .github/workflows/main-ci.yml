@@ -1,7 +1,7 @@
 #
 # Continuous Integration (CI) script for execution on every event that changes the main branch.
 #
-name: Run tests
+name: Build, Lint then Test
 
 on:
   push:
@@ -33,3 +33,51 @@ jobs:
 
       - name: Run tests
         run: npm test
+
+
+  TypeScript-Static-Analyis:
+    runs-on: ubuntu-latest
+    name: TypeScript static analysis
+    needs: Unit-Tests
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint-ts
+
+
+  Solidity-Static-Analysis-Solhint:
+    runs-on: ubuntu-latest
+    name: Solidity static analysis (Solhint)
+    needs: Unit-Tests
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint-sol
