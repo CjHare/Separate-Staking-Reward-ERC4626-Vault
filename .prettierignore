@@ -1,0 +1,12 @@
+# Ignore artifacts:
+.github
+.husky
+.openzeppelin
+.eslintrc
+artifacts
+cache
+dist
+docs
+node_modules
+test/contracts/cast
+typechain-types
