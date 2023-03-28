@@ -68,7 +68,7 @@ contract SimpleRewardVault is ERC4626 {
         uint totalShares = ERC20.totalSupply();
 
         if (ERC4626.totalAssets() > 0 && totalShares > 0) {
-            uint blocksSinceLastReward = block.number - _lastRewardedBlock + 1;
+            uint blocksSinceLastReward = block.number - _lastRewardedBlock;
             uint rewards = blocksSinceLastReward * _rewardTokensPerBlock;
             uint previewAccumulatedRewardsPerShare = _accumulatedRewardsPerShare + (rewards / totalShares);
             uint maximumRewards = (ERC20.balanceOf(receiver_) * previewAccumulatedRewardsPerShare) / REWARDS_PRECISION;

@@ -1,10 +1,7 @@
 // Start - Support direct Mocha run & debug
 import 'hardhat'
 import '@nomiclabs/hardhat-ethers'
-import {
-    IERC20,
-    SimpleRewardVault
-} from '../../typechain-types'
+import {IERC20, SimpleRewardVault} from '../../typechain-types'
 import chai, {expect} from 'chai'
 import {ethers, network} from "hardhat";
 import {BigNumber, utils} from "ethers";
@@ -71,14 +68,17 @@ describe('Staking Pool Tests', () => {
             await assets.connect(userTwo).approve(vault.address, TWO_HUNDRED_TOKENS)
             await vault.connect(userTwo).deposit(TWO_HUNDRED_TOKENS, userTwo.address)
 
-            // Pass 100 blocks - 100 blocks or reward time
+            // Pass 100 blocks - 100 blocks of reward time
             await mine(100)
 
             // User 1 withdraws 100 tokens (burning the vault tokens) and receives 33.33 reward tokens
             await vault.connect(userOne).withdraw(ONE_HUNDRED_TOKENS, userOne.address, userOne.address)
 
+            // Mine User One's withdrawal
+            await mine()
+
             // User 2 keeps balance (has earned 66.66 reward tokens to date)
-            // expect(await vault.previewHarvestRewards(userTwo.address), 'User Two rewards').equals(rewardsFromFloatingPoint(66.66))
+            expect(await vault.previewHarvestRewards(userTwo.address), 'User Two rewards').to.be.closeTo(rewardsTwoDp(66.66), SIXTEEN_DECIMAL_PLACES)
 
             // Pass another 100 blocks - 100 blocks of reward time
             await mine(100)
@@ -90,14 +90,11 @@ describe('Staking Pool Tests', () => {
             await assets.connect(userThree).approve(vault.address, ONE_HUNDRED_TOKENS)
             await vault.connect(userThree).deposit(ONE_HUNDRED_TOKENS, userThree.address)
 
-            // Pass another 100 blocks - 99 blocks of reward time for User Three, 100 blocks for User Two
+            // Mine User Three's deposit
+            await mine()
+
+            // Pass 100 blocks - 100 blocks of reward time
             await mine(100)
-
-            // User 2 keeps balance (has earned 233.33 vault tokens)
-            expect(await vault.previewHarvestRewards(userTwo.address), 'User Two previewed rewards').to.be.closeTo(rewardsTwoDp(233.33), SIXTEEN_DECIMAL_PLACES)
-
-            // User 3 keeps balance (has earned 33.33 tokens)
-            expect(await vault.previewHarvestRewards(userThree.address), 'User Three previewed rewards').to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
 
             // User One withdrew and harvested rewards
             expect(await vault.balanceOf(userOne.address), 'User One vault').equals(ZERO)
@@ -108,7 +105,7 @@ describe('Staking Pool Tests', () => {
             expect(await vault.balanceOf(userTwo.address), 'User Two vault').equals(TWO_HUNDRED_TOKENS)
             expect(await assets.balanceOf(userTwo.address), 'User Two assets').equals(ZERO)
             expect(await rewards.balanceOf(userTwo.address), 'User Two rewards').equals(ZERO)
-            expect(await vault.previewHarvestRewards(userTwo.address), 'User Two previewed rewards').to.be.closeTo(rewardsTwoDp(233.33), SIXTEEN_DECIMAL_PLACES)
+            expect(await vault.previewHarvestRewards(userTwo.address), 'User Two previewed rewards').to.be.closeTo(rewardsTwoDp(234.33), SIXTEEN_DECIMAL_PLACES)
 
             // User Three is still staking
             expect(await vault.balanceOf(userThree.address), 'User Three vault').equals(ONE_HUNDRED_TOKENS)
