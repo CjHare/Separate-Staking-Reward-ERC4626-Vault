@@ -20,7 +20,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract SimpleRewardVault is ERC4626 {
     using SafeERC20 for IERC20;
 
-    uint256 private constant REWARDS_PRECISION = 10e18;
+    uint256 private constant _REWARDS_PRECISION = 10e18;
 
     uint256 private _rewardTokensPerBlock;
     uint256 private _totalStaked;
@@ -35,18 +35,52 @@ contract SimpleRewardVault is ERC4626 {
 
     event HarvestRewards(address indexed user, uint256 amount);
 
-    constructor(ERC20 rewards_, IERC20 stakingAsset_, string memory shareName_, string memory shareSymbol_) ERC4626(stakingAsset_) ERC20(shareName_, shareSymbol_)  {
+    constructor(
+        ERC20 rewards_,
+        IERC20 stakingAsset_,
+        string memory shareName_,
+        string memory shareSymbol_
+    ) ERC4626(stakingAsset_) ERC20(shareName_, shareSymbol_) {
         // One whole reward token per a block split amongst all shareholders
-        _rewardTokensPerBlock = 10**rewards_.decimals() * REWARDS_PRECISION;
+        _rewardTokensPerBlock = 10 ** rewards_.decimals() * _REWARDS_PRECISION;
 
         _rewards = rewards_;
     }
 
-    function deposit(uint256 assets_, address receiver_) public virtual override returns (uint256) {
+    /**
+     * Preview of the rewards earned if harvest in the next block e.g. current block + 1
+     */
+    function previewHarvestRewards(
+        address receiver_
+    ) external view returns (uint256) {
+        uint totalShares = ERC20.totalSupply();
+
+        if (ERC4626.totalAssets() > 0 && totalShares > 0) {
+            uint blocksSinceLastReward = block.number - _lastRewardedBlock;
+            uint rewards = blocksSinceLastReward * _rewardTokensPerBlock;
+            uint previewAccumulatedRewardsPerShare = _accumulatedRewardsPerShare +
+                    (rewards / totalShares);
+            uint maximumRewards = (ERC20.balanceOf(receiver_) *
+                previewAccumulatedRewardsPerShare) / _REWARDS_PRECISION;
+            uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];
+
+            return rewardsToHarvest;
+        }
+
+        return 0;
+    }
+
+    function deposit(
+        uint256 assets_,
+        address receiver_
+    ) public virtual override returns (uint256) {
         harvestRewards(receiver_);
 
-        uint amount = ERC20.balanceOf(receiver_) + ERC4626.convertToShares(assets_);
-        _rewardDebt[receiver_] = amount * _accumulatedRewardsPerShare / REWARDS_PRECISION;
+        uint amount = ERC20.balanceOf(receiver_) +
+            ERC4626.convertToShares(assets_);
+        _rewardDebt[receiver_] =
+            (amount * _accumulatedRewardsPerShare) /
+            _REWARDS_PRECISION;
 
         return ERC4626.deposit(assets_, receiver_);
     }
@@ -62,32 +96,14 @@ contract SimpleRewardVault is ERC4626 {
     }
 
     /**
-     * Preview of the rewards earned if harvest in the next block e.g. current block + 1
-     */
-    function previewHarvestRewards(address receiver_) external view returns (uint256){
-        uint totalShares = ERC20.totalSupply();
-
-        if (ERC4626.totalAssets() > 0 && totalShares > 0) {
-            uint blocksSinceLastReward = block.number - _lastRewardedBlock;
-            uint rewards = blocksSinceLastReward * _rewardTokensPerBlock;
-            uint previewAccumulatedRewardsPerShare = _accumulatedRewardsPerShare + (rewards / totalShares);
-            uint maximumRewards = (ERC20.balanceOf(receiver_) * previewAccumulatedRewardsPerShare) / REWARDS_PRECISION;
-            uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];
-
-            return rewardsToHarvest;
-        }
-
-        return 0;
-    }
-
-    /**
      * When the vault lacks sufficient rewards harvest will revert on the attempted transfer of reward tokens.
      */
     function harvestRewards(address receiver_) public {
-        updatePoolRewards();
+        _updatePoolRewards();
 
         if (ERC4626.totalAssets() >= 0) {
-            uint maximumRewards = (ERC20.balanceOf(receiver_) * _accumulatedRewardsPerShare) / REWARDS_PRECISION;
+            uint maximumRewards = (ERC20.balanceOf(receiver_) *
+                _accumulatedRewardsPerShare) / _REWARDS_PRECISION;
             uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];
 
             if (rewardsToHarvest > 0) {
@@ -101,13 +117,15 @@ contract SimpleRewardVault is ERC4626 {
     /**
      * @dev Update pool's accumulatedRewardsPerShare and lastRewardedBlock
      */
-    function updatePoolRewards() private {
+    function _updatePoolRewards() private {
         uint totalShares = ERC20.totalSupply();
 
         if (ERC4626.totalAssets() > 0 && totalShares > 0) {
             uint256 blocksSinceLastReward = block.number - _lastRewardedBlock;
             uint256 rewards = blocksSinceLastReward * _rewardTokensPerBlock;
-            _accumulatedRewardsPerShare = _accumulatedRewardsPerShare + (rewards / totalShares);
+            _accumulatedRewardsPerShare =
+                _accumulatedRewardsPerShare +
+                (rewards / totalShares);
         }
 
         _lastRewardedBlock = block.number;
