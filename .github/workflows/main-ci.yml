@@ -5,6 +5,8 @@ name: Run tests
 
 on:
   push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -17,22 +19,17 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v3
 
-    - name: Set up Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-          cache: 'npm'
-
-      - name: Set up node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
+      - name: Set up Node
+          uses: actions/setup-node@v3
+          with:
+            node-version: 16
+            cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+          run: npm ci
 
       - name: Build application
-        run: npm run build
+          run: npm run build
 
       - name: Run tests
-        run: npm test
+          run: npm test
