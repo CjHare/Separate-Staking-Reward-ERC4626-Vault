@@ -1,13 +1,16 @@
 // Start - Support direct Mocha run & debug
+import 'hardhat'
 import '@nomiclabs/hardhat-ethers'
+// End - Support direct Mocha run & debug
+
 import {IERC20, SimpleRewardVault} from '../../typechain-types'
 import chai, {expect} from 'chai'
-import {ethers, network} from 'hardhat'
 import {BigNumber, utils} from 'ethers'
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers'
 import {solidity} from 'ethereum-waffle'
-// End - Support direct Mocha run & debug
+import {ethers, network} from "hardhat";
 
+// Wires up Waffle with Chai
 chai.use(solidity)
 
 const ZERO = BigNumber.from(0)
