@@ -22,7 +22,7 @@ contract SimpleRewardVault is ERC4626 {
 
     uint256 private constant _REWARDS_PRECISION = 10e18;
 
-    uint256 private _rewardTokensPerBlock;
+    uint256 private immutable  _rewardTokensPerBlock;
     uint256 private _lastRewardedBlock;
 
     // Accumulated rewards per share times REWARDS_PRECISION
