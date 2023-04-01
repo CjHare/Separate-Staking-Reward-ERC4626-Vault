@@ -23,7 +23,6 @@ contract SimpleRewardVault is ERC4626 {
     uint256 private constant _REWARDS_PRECISION = 10e18;
 
     uint256 private _rewardTokensPerBlock;
-    uint256 private _totalStaked;
     uint256 private _lastRewardedBlock;
 
     // Accumulated rewards per share times REWARDS_PRECISION
@@ -101,7 +100,7 @@ contract SimpleRewardVault is ERC4626 {
     function harvestRewards(address receiver_) public {
         _updatePoolRewards();
 
-        if (ERC4626.totalAssets() >= 0) {
+        if (ERC4626.totalAssets() > 0) {
             uint maximumRewards = (ERC20.balanceOf(receiver_) *
                 _accumulatedRewardsPerShare) / _REWARDS_PRECISION;
             uint rewardsToHarvest = maximumRewards - _rewardDebt[receiver_];

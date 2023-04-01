@@ -30,3 +30,9 @@ To run both the TypeScript and Solidity linters.
 ```shell
 npm run lint
 ```
+
+## Tools
+
+Setup and run instructions:
+
+- [Slither](./docs/tools/slither.md); Trail of Bits Solidity static analyzer.
