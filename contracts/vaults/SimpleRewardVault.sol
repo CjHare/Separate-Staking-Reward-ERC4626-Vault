@@ -31,7 +31,16 @@ contract SimpleRewardVault is ERC4626 {
 
     mapping(address => uint256) private _rewardDebt;
 
-    event HarvestRewards(address indexed user, uint256 amount);
+    event HarvestRewards(
+        address indexed receiver,
+        address indexed owner,
+        uint256 amount
+    );
+    event EmergencyWithdraw(
+        address indexed receiver,
+        address indexed owner,
+        uint256 shares
+    );
 
     constructor(
         ERC20 rewards_,
@@ -97,7 +106,7 @@ contract SimpleRewardVault is ERC4626 {
      * When the vault lacks sufficient rewards harvest will revert on the attempted transfer of reward tokens.
      */
     function harvestRewards(address receiver_) public {
-        _updatePoolRewards();
+        _updatePoolRewards(_totalShares());
 
         if (ERC4626.totalAssets() > 0) {
             uint maximumRewards = (ERC20.balanceOf(receiver_) *
@@ -106,18 +115,35 @@ contract SimpleRewardVault is ERC4626 {
 
             if (rewardsToHarvest > 0) {
                 _rewardDebt[receiver_] = maximumRewards;
-                emit HarvestRewards(receiver_, rewardsToHarvest);
+                emit HarvestRewards(receiver_, msg.sender, rewardsToHarvest);
                 SafeERC20.safeTransfer(_rewards, receiver_, rewardsToHarvest);
             }
         }
     }
 
     /**
+     *  Full withdrawal by the user, abandoning all and any owed rewards. EMERGENCY ONLY.
+     *
+     * @param receiver recipient of the assets being withdrawn.
+     * @return assets amount of the assets that were transferred to the receiver.
+     */
+    function emergencyWithdraw(
+        address receiver
+    ) external returns (uint256 assets) {
+        _rewardDebt[msg.sender] = 0;
+        uint shares = ERC4626.maxRedeem(msg.sender);
+
+        uint supplyAfterWithdrawal = _totalShares() - shares;
+        _updatePoolRewards(supplyAfterWithdrawal);
+
+        emit EmergencyWithdraw(receiver, msg.sender, shares);
+        return ERC4626.redeem(shares, receiver, msg.sender);
+    }
+
+    /**
      * @dev Update pool's accumulatedRewardsPerShare and lastRewardedBlock
      */
-    function _updatePoolRewards() private {
-        uint totalShares = ERC20.totalSupply();
-
+    function _updatePoolRewards(uint totalShares) private {
         if (ERC4626.totalAssets() > 0 && totalShares > 0) {
             uint256 blocksSinceLastReward = block.number - _lastRewardedBlock;
             uint256 rewards = blocksSinceLastReward * _rewardTokensPerBlock;
@@ -127,5 +153,14 @@ contract SimpleRewardVault is ERC4626 {
         }
 
         _lastRewardedBlock = block.number;
+    }
+
+    /**
+     * @dev Helps with code readability, to avoid confusion over which suppyl is being referred to.
+     * ERC20.totalSupply() is the total amount of current shares.
+     * ERC4626.totalSupply() is the total amount of assets.
+     */
+    function _totalShares() private view returns (uint256) {
+        return ERC20.totalSupply();
     }
 }
