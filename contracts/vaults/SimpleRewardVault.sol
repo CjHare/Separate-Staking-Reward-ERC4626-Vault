@@ -63,11 +63,13 @@ contract SimpleRewardVault is ERC4626 {
     function emergencyWithdraw(
         address receiver
     ) external returns (uint256 assets) {
+        _updatePoolRewards(_totalShares());
+
         _rewardDebt[msg.sender] = 0;
         uint shares = ERC4626.maxRedeem(msg.sender);
 
-        uint supplyAfterWithdrawal = _totalShares() - shares;
-        _updatePoolRewards(supplyAfterWithdrawal);
+        //        uint supplyAfterWithdrawal = _totalShares() - shares;
+        //      _updatePoolRewards(supplyAfterWithdrawal);
 
         emit EmergencyWithdraw(receiver, msg.sender, shares);
         return ERC4626.redeem(shares, receiver, msg.sender);

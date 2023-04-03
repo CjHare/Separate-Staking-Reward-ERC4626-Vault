@@ -67,7 +67,6 @@ describe('Staking Pool Tests', () => {
         await assets.transfer(userOne.address, ONE_HUNDRED_TOKENS)
         await assets.transfer(userTwo.address, TWO_HUNDRED_TOKENS)
         await assets.transfer(userThree.address, ONE_HUNDRED_TOKENS)
-
         await mine()
 
         // 1 token per a block - hardcoded in contract
@@ -99,7 +98,7 @@ describe('Staking Pool Tests', () => {
         expect(
             await vault.previewHarvestRewards(userTwo.address),
             'User Two rewards'
-        ).to.be.closeTo(rewardsTwoDp(66.66), SIXTEEN_DECIMAL_PLACES)
+        ).to.be.closeTo(asRewardTokens(66.66), SIXTEEN_DECIMAL_PLACES)
 
         // Pass another 100 blocks - 100 blocks of reward time
         await mine(100)
@@ -108,7 +107,7 @@ describe('Staking Pool Tests', () => {
         expect(
             await vault.previewHarvestRewards(userTwo.address),
             'User Two previewed rewards'
-        ).to.be.closeTo(rewardsTwoDp(166.66), SIXTEEN_DECIMAL_PLACES)
+        ).to.be.closeTo(asRewardTokens(166.66), SIXTEEN_DECIMAL_PLACES)
 
         // User 3 deposits 100 token A into Vault, receiving 100 Vault tokens
         await assets
@@ -135,7 +134,7 @@ describe('Staking Pool Tests', () => {
         expect(
             await rewards.balanceOf(userOne.address),
             'User One rewards'
-        ).to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
+        ).to.be.closeTo(asRewardTokens(33.33), SIXTEEN_DECIMAL_PLACES)
 
         // User Two is still staking
         expect(await vault.balanceOf(userTwo.address), 'User Two vault').equals(
@@ -152,7 +151,7 @@ describe('Staking Pool Tests', () => {
         expect(
             await vault.previewHarvestRewards(userTwo.address),
             'User Two previewed rewards'
-        ).to.be.closeTo(rewardsTwoDp(234.33), SIXTEEN_DECIMAL_PLACES)
+        ).to.be.closeTo(asRewardTokens(234.33), SIXTEEN_DECIMAL_PLACES)
 
         // User Three is still staking
         expect(
@@ -170,28 +169,82 @@ describe('Staking Pool Tests', () => {
         expect(
             await vault.previewHarvestRewards(userThree.address),
             'User Three previewed rewards'
-        ).to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
+        ).to.be.closeTo(asRewardTokens(33.33), SIXTEEN_DECIMAL_PLACES)
     })
 
     it('should allow emergency withdrawal of vaults assets, with rewards owed', async () => {
-        // two depoists
-        // pass 100 blocks
-        // verify rewards owed to both & their existing balances & reward balances
-        // emergency exit
-        // verify rewards owed to both & their existing balances & reward balances
-        // TODO code
+        await assets.transfer(userTwo.address, ONE_HUNDRED_TOKENS)
+        await assets.transfer(userThree.address, TWO_HUNDRED_TOKENS)
+        await mine()
+
+        await assets.connect(userTwo).approve(vault.address, ONE_HUNDRED_TOKENS)
+        await vault
+            .connect(userTwo)
+            .deposit(ONE_HUNDRED_TOKENS, userTwo.address)
+        await assets
+            .connect(userThree)
+            .approve(vault.address, TWO_HUNDRED_TOKENS)
+        await vault
+            .connect(userThree)
+            .deposit(TWO_HUNDRED_TOKENS, userThree.address)
+        await mine()
+
+        // 100 blocks of reward time
+        await mine(100)
+
+        expect(
+            await vault.previewHarvestRewards(userTwo.address),
+            'User Two owed reward of 33.33'
+        ).to.be.closeTo(asRewardTokens(33.33), SIXTEEN_DECIMAL_PLACES)
+
+        expect(
+            await vault.previewHarvestRewards(userThree.address),
+            'User Three owed reward of 66.66'
+        ).to.be.closeTo(asRewardTokens(66.66), SIXTEEN_DECIMAL_PLACES)
+
+        await vault.connect(userTwo).emergencyWithdraw(userTwo.address)
+        await mine()
+
+        // User three's owed rewards should remain, whilst user Two looses theirs but receiver their assets back
+        expect(
+            await vault.previewHarvestRewards(userThree.address),
+            'User Three owed an extra block of reward at 67.33'
+        ).to.be.closeTo(asRewardTokens(67.33), SIXTEEN_DECIMAL_PLACES)
+
+        expect(
+            await vault.balanceOf(userTwo.address),
+            'User Two share amount after emergency withdraw is zero'
+        ).to.equal(0)
+
+        expect(
+            await vault.previewHarvestRewards(userTwo.address),
+            'User Two owed rewards after emergency withdraw is zero'
+        ).to.equal(0)
+
+        expect(
+            await vault.totalSupply(),
+            'Vault has supply of shares after emergency withdraw is two hundred'
+        ).to.equal(TWO_HUNDRED_TOKENS)
+
+        expect(
+            await vault.totalAssets(),
+            'Vault assets after emergency withdraw is two hundred'
+        ).to.equal(TWO_HUNDRED_TOKENS)
+
+        expect(
+            await assets.balanceOf(userTwo.address),
+            'User Two assets received from emergency withdraw of one hundred tokens'
+        ).to.equal(ONE_HUNDRED_TOKENS)
     })
 
     it('should allow emergency withdrawal of last of vaults assets', async () => {
         await assets.transfer(userOne.address, TWO_HUNDRED_TOKENS)
-
         await mine()
 
         await assets.connect(userOne).approve(vault.address, TWO_HUNDRED_TOKENS)
         await vault
             .connect(userOne)
             .deposit(TWO_HUNDRED_TOKENS, userOne.address)
-
         await mine()
 
         // Accrue ten blocks of rewards owed
@@ -199,47 +252,49 @@ describe('Staking Pool Tests', () => {
 
         expect(
             await vault.balanceOf(userOne.address),
-            'User One share amount'
+            'User One share amount is two hundred tokens'
         ).to.be.closeTo(TWO_HUNDRED_TOKENS, SIXTEEN_DECIMAL_PLACES)
 
         expect(
             await vault.previewHarvestRewards(userOne.address),
-            'User One owed rewards'
-        ).to.be.closeTo(rewardsTwoDp(10), SIXTEEN_DECIMAL_PLACES)
+            'User One owed rewards owed is ten tokens'
+        ).to.be.closeTo(asRewardTokens(10), SIXTEEN_DECIMAL_PLACES)
 
         await vault.connect(userOne).emergencyWithdraw(userTwo.address)
-
         await mine()
 
         // No shares, assets or owed rewards should remain, with the assets transferred to user two
         expect(
             await vault.balanceOf(userOne.address),
-            'User One share amount after emergency withdraw'
+            'User One share amount after emergency withdraw is zero'
         ).to.equal(0)
 
         expect(
             await vault.previewHarvestRewards(userOne.address),
-            'User One owed rewards after emergency withdraw'
+            'User One owed rewards after emergency withdraw is zero'
         ).to.equal(0)
 
         expect(
             await vault.totalSupply(),
-            'Vault has supply of shares is zero after emergency withdraw'
+            'Vault has supply of shares after emergency withdraw is zero'
         ).to.equal(0)
 
         expect(
             await vault.totalAssets(),
-            'Vault holds zero assets after emergency withdraw'
+            'Vault assets after emergency withdraw is zero'
         ).to.equal(0)
 
         expect(
             await assets.balanceOf(userTwo.address),
-            'User Two assets received from emergency withdraw'
+            'User Two assets received from emergency withdraw of two hundred tokens'
         ).to.equal(TWO_HUNDRED_TOKENS)
     })
 
-    function rewardsTwoDp(twoDecimalPlaceAmount: number): BigNumber {
-        return BigNumber.from(Math.round(twoDecimalPlaceAmount * 100)).mul(
+    /**
+     * Converts up to two decimal place number into the eight decimal representation (10e18 integer) used in rewards.
+     */
+    function asRewardTokens(uptoTwoDecimalPlaces: number): BigNumber {
+        return BigNumber.from(Math.round(uptoTwoDecimalPlaces * 100)).mul(
             SIXTEEN_DECIMAL_PLACES
         )
     }
