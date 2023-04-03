@@ -97,7 +97,7 @@ describe('Staking Pool Tests', () => {
         // User 2 keeps balance (has earned 66.66 reward tokens to date)
         expect(
             await vault.previewHarvestRewards(userTwo.address),
-            'User Two rewards'
+            'User Two owed rewards of 66.66 tokens'
         ).to.be.closeTo(asRewardTokens(66.66), SIXTEEN_DECIMAL_PLACES)
 
         // Pass another 100 blocks - 100 blocks of reward time
@@ -106,7 +106,7 @@ describe('Staking Pool Tests', () => {
         // User 2 keeps balance (has earned 166.66 vault tokens)
         expect(
             await vault.previewHarvestRewards(userTwo.address),
-            'User Two previewed rewards'
+            'User Two owed rewards of 166.66 tokens'
         ).to.be.closeTo(asRewardTokens(166.66), SIXTEEN_DECIMAL_PLACES)
 
         // User 3 deposits 100 token A into Vault, receiving 100 Vault tokens
@@ -124,51 +124,53 @@ describe('Staking Pool Tests', () => {
         await mine(100)
 
         // User One withdrew and harvested rewards
-        expect(await vault.balanceOf(userOne.address), 'User One vault').equals(
-            ZERO
-        )
+        expect(
+            await vault.balanceOf(userOne.address),
+            'Vault balance of User One is zero'
+        ).equals(ZERO)
         expect(
             await assets.balanceOf(userOne.address),
-            'User One assets'
+            'Asset balance of User One is 100 tokens'
         ).equals(ONE_HUNDRED_TOKENS)
         expect(
             await rewards.balanceOf(userOne.address),
-            'User One rewards'
+            'Reward balance of User One rewards is 33.33 tokens'
         ).to.be.closeTo(asRewardTokens(33.33), SIXTEEN_DECIMAL_PLACES)
 
         // User Two is still staking
-        expect(await vault.balanceOf(userTwo.address), 'User Two vault').equals(
-            TWO_HUNDRED_TOKENS
-        )
+        expect(
+            await vault.balanceOf(userTwo.address),
+            'Vault balance of User Two is 200 tokens'
+        ).equals(TWO_HUNDRED_TOKENS)
         expect(
             await assets.balanceOf(userTwo.address),
-            'User Two assets'
+            'Asset balance of User Two is zero'
         ).equals(ZERO)
         expect(
             await rewards.balanceOf(userTwo.address),
-            'User Two rewards'
+            'Reward balance of User Two is zero'
         ).equals(ZERO)
         expect(
             await vault.previewHarvestRewards(userTwo.address),
-            'User Two previewed rewards'
+            'User Two owed rewards of 234.33 tokens'
         ).to.be.closeTo(asRewardTokens(234.33), SIXTEEN_DECIMAL_PLACES)
 
         // User Three is still staking
         expect(
             await vault.balanceOf(userThree.address),
-            'User Three vault'
+            'Vault balance of User Three is 100 tokens'
         ).equals(ONE_HUNDRED_TOKENS)
         expect(
             await assets.balanceOf(userThree.address),
-            'User Three assets'
+            'Asset balance of User Three is zero'
         ).equals(ZERO)
         expect(
             await rewards.balanceOf(userThree.address),
-            'User Three rewards'
+            'Reward balance of User Three is zero'
         ).equals(ZERO)
         expect(
             await vault.previewHarvestRewards(userThree.address),
-            'User Three previewed rewards'
+            'User Three owed rewards of 33.33 tokens'
         ).to.be.closeTo(asRewardTokens(33.33), SIXTEEN_DECIMAL_PLACES)
     })
 
@@ -194,12 +196,12 @@ describe('Staking Pool Tests', () => {
 
         expect(
             await vault.previewHarvestRewards(userTwo.address),
-            'User Two owed reward of 33.33'
+            'User Two owed reward of 33.33 tokens'
         ).to.be.closeTo(asRewardTokens(33.33), SIXTEEN_DECIMAL_PLACES)
 
         expect(
             await vault.previewHarvestRewards(userThree.address),
-            'User Three owed reward of 66.66'
+            'User Three owed reward of 66.66 tokens'
         ).to.be.closeTo(asRewardTokens(66.66), SIXTEEN_DECIMAL_PLACES)
 
         await vault.connect(userTwo).emergencyWithdraw(userTwo.address)
@@ -208,12 +210,12 @@ describe('Staking Pool Tests', () => {
         // User three's owed rewards should remain, whilst user Two looses theirs but receiver their assets back
         expect(
             await vault.previewHarvestRewards(userThree.address),
-            'User Three owed an extra block of reward at 67.33'
+            'User Three owed reward of 67.33 tokens'
         ).to.be.closeTo(asRewardTokens(67.33), SIXTEEN_DECIMAL_PLACES)
 
         expect(
             await vault.balanceOf(userTwo.address),
-            'User Two share amount after emergency withdraw is zero'
+            'Vault balance of User Two share after emergency withdraw is zero'
         ).to.equal(0)
 
         expect(
@@ -223,17 +225,17 @@ describe('Staking Pool Tests', () => {
 
         expect(
             await vault.totalSupply(),
-            'Vault has supply of shares after emergency withdraw is two hundred'
+            'Vault has supply of shares after emergency withdraw is 200 tokens'
         ).to.equal(TWO_HUNDRED_TOKENS)
 
         expect(
             await vault.totalAssets(),
-            'Vault assets after emergency withdraw is two hundred'
+            'Vault assets after emergency withdraw is 200 tokens'
         ).to.equal(TWO_HUNDRED_TOKENS)
 
         expect(
             await assets.balanceOf(userTwo.address),
-            'User Two assets received from emergency withdraw of one hundred tokens'
+            'User Two assets received from emergency withdraw of 100 tokens'
         ).to.equal(ONE_HUNDRED_TOKENS)
     })
 
@@ -252,12 +254,12 @@ describe('Staking Pool Tests', () => {
 
         expect(
             await vault.balanceOf(userOne.address),
-            'User One share amount is two hundred tokens'
+            'Vault balance of User One os 100 tokens'
         ).to.be.closeTo(TWO_HUNDRED_TOKENS, SIXTEEN_DECIMAL_PLACES)
 
         expect(
             await vault.previewHarvestRewards(userOne.address),
-            'User One owed rewards owed is ten tokens'
+            'User One owed rewards of 10 tokens'
         ).to.be.closeTo(asRewardTokens(10), SIXTEEN_DECIMAL_PLACES)
 
         await vault.connect(userOne).emergencyWithdraw(userTwo.address)
@@ -266,7 +268,7 @@ describe('Staking Pool Tests', () => {
         // No shares, assets or owed rewards should remain, with the assets transferred to user two
         expect(
             await vault.balanceOf(userOne.address),
-            'User One share amount after emergency withdraw is zero'
+            'Vault valance of User One after emergency withdraw is zero'
         ).to.equal(0)
 
         expect(
@@ -286,7 +288,7 @@ describe('Staking Pool Tests', () => {
 
         expect(
             await assets.balanceOf(userTwo.address),
-            'User Two assets received from emergency withdraw of two hundred tokens'
+            'Asset balance of User Two received from emergency withdraw is two hundred tokens'
         ).to.equal(TWO_HUNDRED_TOKENS)
     })
 
