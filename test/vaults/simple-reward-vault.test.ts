@@ -23,6 +23,12 @@ const ONE_MILLION_TOKENS = BigNumber.from(10e5).mul(EIGHTEEN_DECIMAL_PLACES)
 
 // Manual mining is on; mine() must be called to produce blocks!
 describe('Staking Pool Tests', () => {
+    before(async () => {
+        userOne = await signer(1)
+        userTwo = await signer(2)
+        userThree = await signer(3)
+    })
+
     beforeEach(async () => {
         const promiseStakingContract = deploy(
             'TestERC20',
@@ -42,10 +48,6 @@ describe('Staking Pool Tests', () => {
         assets = <IERC20>await promiseStakingContract
         rewards = <IERC20>await promisedRewardContract
 
-        userOne = await signer(1)
-        userTwo = await signer(2)
-        userThree = await signer(3)
-
         const promisedVaultContract = deploy(
             'SimpleRewardVault',
             rewards.address,
@@ -55,6 +57,11 @@ describe('Staking Pool Tests', () => {
         )
         await mine()
         vault = <SimpleRewardVault>await promisedVaultContract
+    })
+
+    it('should calculate rewards for staggered stakes and withdrawal', async () => {
+        // Owner deposits 1,000,000 reward tokens (in rewards decimal)
+        await rewards.transfer(vault.address, ONE_MILLION_TOKENS)
 
         // Give the users with their staking funds
         await assets.transfer(userOne.address, ONE_HUNDRED_TOKENS)
@@ -62,12 +69,6 @@ describe('Staking Pool Tests', () => {
         await assets.transfer(userThree.address, ONE_HUNDRED_TOKENS)
 
         await mine()
-        await mine()
-    })
-
-    it('should calculate rewards for staggered stakes and withdrawal', async () => {
-        // Owner deposits 1,000,000 reward tokens (in rewards decimal)
-        await rewards.transfer(vault.address, ONE_MILLION_TOKENS)
 
         // 1 token per a block - hardcoded in contract
 
@@ -172,8 +173,69 @@ describe('Staking Pool Tests', () => {
         ).to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
     })
 
-    it('should allow emergency withdrawal of last of vaults assets', async () => {
+    it('should allow emergency withdrawal of vaults assets, with rewards owed', async () => {
+        // two depoists
+        // pass 100 blocks
+        // verify rewards owed to both & their existing balances & reward balances
+        // emergency exit
+        // verify rewards owed to both & their existing balances & reward balances
         // TODO code
+    })
+
+    it('should allow emergency withdrawal of last of vaults assets', async () => {
+        await assets.transfer(userOne.address, TWO_HUNDRED_TOKENS)
+
+        await mine()
+
+        await assets.connect(userOne).approve(vault.address, TWO_HUNDRED_TOKENS)
+        await vault
+            .connect(userOne)
+            .deposit(TWO_HUNDRED_TOKENS, userOne.address)
+
+        await mine()
+
+        // Accrue ten blocks of rewards owed
+        await mine(10)
+
+        expect(
+            await vault.balanceOf(userOne.address),
+            'User One share amount'
+        ).to.be.closeTo(TWO_HUNDRED_TOKENS, SIXTEEN_DECIMAL_PLACES)
+
+        expect(
+            await vault.previewHarvestRewards(userOne.address),
+            'User One owed rewards'
+        ).to.be.closeTo(rewardsTwoDp(10), SIXTEEN_DECIMAL_PLACES)
+
+        await vault.connect(userOne).emergencyWithdraw(userTwo.address)
+
+        await mine()
+
+        // No shares, assets or owed rewards should remain, with the assets transferred to user two
+        expect(
+            await vault.balanceOf(userOne.address),
+            'User One share amount after emergency withdraw'
+        ).to.equal(0)
+
+        expect(
+            await vault.previewHarvestRewards(userOne.address),
+            'User One owed rewards after emergency withdraw'
+        ).to.equal(0)
+
+        expect(
+            await vault.totalSupply(),
+            'Vault has supply of shares is zero after emergency withdraw'
+        ).to.equal(0)
+
+        expect(
+            await vault.totalAssets(),
+            'Vault holds zero assets after emergency withdraw'
+        ).to.equal(0)
+
+        expect(
+            await assets.balanceOf(userTwo.address),
+            'User Two assets received from emergency withdraw'
+        ).to.equal(TWO_HUNDRED_TOKENS)
     })
 
     function rewardsTwoDp(twoDecimalPlaceAmount: number): BigNumber {
