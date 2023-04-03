@@ -23,7 +23,7 @@ const ONE_MILLION_TOKENS = BigNumber.from(10e5).mul(EIGHTEEN_DECIMAL_PLACES)
 
 // Manual mining is on; mine() must be called to produce blocks!
 describe('Staking Pool Tests', () => {
-    before(async () => {
+    beforeEach(async () => {
         const promiseStakingContract = deploy(
             'TestERC20',
             'StakingToken',
@@ -170,6 +170,10 @@ describe('Staking Pool Tests', () => {
             await vault.previewHarvestRewards(userThree.address),
             'User Three previewed rewards'
         ).to.be.closeTo(rewardsTwoDp(33.33), SIXTEEN_DECIMAL_PLACES)
+    })
+
+    it('should allow emergency withdrawal of last of vaults assets', async () => {
+        // TODO code
     })
 
     function rewardsTwoDp(twoDecimalPlaceAmount: number): BigNumber {

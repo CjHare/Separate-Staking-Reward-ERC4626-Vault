@@ -55,6 +55,25 @@ contract SimpleRewardVault is ERC4626 {
     }
 
     /**
+     *  Full withdrawal by the user, abandoning all and any owed rewards. EMERGENCY ONLY.
+     *
+     * @param receiver recipient of the assets being withdrawn.
+     * @return assets amount of the assets that were transferred to the receiver.
+     */
+    function emergencyWithdraw(
+        address receiver
+    ) external returns (uint256 assets) {
+        _rewardDebt[msg.sender] = 0;
+        uint shares = ERC4626.maxRedeem(msg.sender);
+
+        uint supplyAfterWithdrawal = _totalShares() - shares;
+        _updatePoolRewards(supplyAfterWithdrawal);
+
+        emit EmergencyWithdraw(receiver, msg.sender, shares);
+        return ERC4626.redeem(shares, receiver, msg.sender);
+    }
+
+    /**
      * Preview of the rewards earned if harvest in the next block e.g. current block + 1
      */
     function previewHarvestRewards(
@@ -119,25 +138,6 @@ contract SimpleRewardVault is ERC4626 {
                 SafeERC20.safeTransfer(_rewards, receiver_, rewardsToHarvest);
             }
         }
-    }
-
-    /**
-     *  Full withdrawal by the user, abandoning all and any owed rewards. EMERGENCY ONLY.
-     *
-     * @param receiver recipient of the assets being withdrawn.
-     * @return assets amount of the assets that were transferred to the receiver.
-     */
-    function emergencyWithdraw(
-        address receiver
-    ) external returns (uint256 assets) {
-        _rewardDebt[msg.sender] = 0;
-        uint shares = ERC4626.maxRedeem(msg.sender);
-
-        uint supplyAfterWithdrawal = _totalShares() - shares;
-        _updatePoolRewards(supplyAfterWithdrawal);
-
-        emit EmergencyWithdraw(receiver, msg.sender, shares);
-        return ERC4626.redeem(shares, receiver, msg.sender);
     }
 
     /**
