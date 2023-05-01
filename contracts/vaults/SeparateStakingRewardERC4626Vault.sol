@@ -17,7 +17,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * Reward calculation uses the share summation that is used in MasterChef V2, keeping accumulated rewards per a share
  * and deducting the ineligible portion (either due to occurring before deposit or from harvesting).
  */
-contract SimpleRewardVault is ERC4626 {
+contract SeparateStakingRewardERC4626Vault is ERC4626 {
     using SafeERC20 for IERC20;
 
     uint256 private constant _REWARDS_PRECISION = 10e18;

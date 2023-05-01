@@ -3,7 +3,7 @@ import 'hardhat'
 import '@nomiclabs/hardhat-ethers'
 // End - Support direct Mocha run & debug
 
-import {IERC20, SimpleRewardVault} from '../../typechain-types'
+import {IERC20, SeparateStakingRewardERC4626Vault} from '../../typechain-types'
 import chai, {expect} from 'chai'
 import {SignerWithAddress} from '@nomiclabs/hardhat-ethers/signers'
 import {solidity} from 'ethereum-waffle'
@@ -22,7 +22,7 @@ const TWO_HUNDRED_TOKENS = BigNumber.from(200).mul(EIGHTEEN_DECIMAL_PLACES)
 const ONE_MILLION_TOKENS = BigNumber.from(10e5).mul(EIGHTEEN_DECIMAL_PLACES)
 
 // Manual mining is on; mine() must be called to produce blocks!
-describe('Staking Pool Tests', () => {
+describe('Separate Staking Reward ERC4626 Vault', () => {
     before(async () => {
         userOne = await signer(1)
         userTwo = await signer(2)
@@ -49,14 +49,14 @@ describe('Staking Pool Tests', () => {
         rewards = <IERC20>await promisedRewardContract
 
         const promisedVaultContract = deploy(
-            'SimpleRewardVault',
+            'SeparateStakingRewardERC4626Vault',
             rewards.address,
             assets.address,
             'VaultToken',
             'VTK'
         )
         await mine()
-        vault = <SimpleRewardVault>await promisedVaultContract
+        vault = <SeparateStakingRewardERC4626Vault>await promisedVaultContract
     })
 
     it('should calculate rewards for staggered stakes and withdrawal', async () => {
@@ -301,7 +301,7 @@ describe('Staking Pool Tests', () => {
         )
     }
 
-    let vault: SimpleRewardVault
+    let vault: SeparateStakingRewardERC4626Vault
     let assets: IERC20
     let rewards: IERC20
     let userOne: SignerWithAddress
