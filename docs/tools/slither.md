@@ -24,34 +24,6 @@ When at the project root, to run using the project configuration:
 slither . --config-file slither.json
 ```
 
-### Docker
-
-The Trail of Bits toolbox image contains a number of applications (including Slither).
-
-#### Install
-
-With Docker in your environment, install the image from DockerHub:
-
-```shell
-docker pull trailofbits/eth-security-toolbox
-```
-
-#### Run
-
-To start a new container with your local source mounted/accessible within the container:
-(replacing `<ABSOLUTE_PATH_TO_WORKING_DIRECTORY>` with the absolute path to the project working directory)
-
-```shell
-docker run -it --mount type=bind,source=<ABSOLUTE_PATH_TO_WORKING_DIRECTORY>,destination=/home/ethsec/test-me trailofbits/eth-security-toolbox
-```
-
-The container will automatically start and log you in, with the project code located in `test-me`.
-Navigate into the `test-me` directory and run the static analysis:
-
-```shell
-cd test-me
---config-file slither.json
-```
 
 ## Excluded Detectors
 
