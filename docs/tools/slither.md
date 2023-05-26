@@ -50,7 +50,7 @@ Navigate into the `test-me` directory and run the static analysis:
 
 ```shell
 cd test-me
---config-file slither.json
+slither . --config-file slither.json
 ```
 
 ## Excluded Detectors
